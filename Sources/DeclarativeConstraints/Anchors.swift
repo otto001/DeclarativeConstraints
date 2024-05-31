@@ -14,42 +14,58 @@ import UIKit
 import AppKit
 #endif
 
+
 // MARK: Anchor
 
-/// A protocol that represents a part of an item that can be constrained. Anchors can represent a single point (e.g., top, bottom, leading, trailing, centerX, centerY), a dimension (e.g., width, height) and also a combination of multiple points at once (e.g., bounds).
-public protocol Anchor {
+/// A protocol that defines a type that represents an anchor in AutoLayout. An anchor is a position or dimension of a view or layout guide.
+public protocol Anchor: LayoutEquationRightHandSide {
+    // The type of the item (e.g., view or layoutGuide) that the anchor belongs to.
+    associatedtype Owner: Constrainable
     /// The item (e.g., view or layoutGuide) that the anchor belongs to.
-    var owner: Constrainable? { get }
+    var owner: Owner { get }
+
+    /// Returns the corresponding anchor of another item. This is used to support convenience functions. No offsets or similar should be applied to the returned anchor.
+    /// - Example: `view.layout.top.correspondingAnchor(of: otherView)` returns `otherView.layout.top`.
+    func correspondingAnchor(of other: Owner) -> Self
+
+    /// Returns an array of attribute equations that express the layout equation. For simple anchors, this will return an array with a single equation. For more complex anchors (i.e., BoundsAnchor), this will return multiple equations.
+    static func attributeEquations(for equation: LayoutEquation) -> [AttributeLayoutEquation]
 }
 
-public extension Anchor {
-    /// Copies the anchor and applies the closure to the copy, returning the modified copy.
-    /// - Parameter closure: The closure to apply to the copy.
-    /// - Returns: The modified copy.
-    func modify(_ closure: (_ anchor: inout Self) -> Void) -> Self {
-        var copy = self
-        closure(&copy)
-        return copy
+extension Anchor where Self: AttributeConvertible {
+    /// Converts the LayoutEquation to an array containing a single, equivalent AttributeLayoutEquations.
+    /// - Paramerter equation: The equation to convert.
+    /// - Returns: An array containing a single AttributeLayoutEquation.
+    public static func attributeEquations(for equation: LayoutEquation) -> [AttributeLayoutEquation] {
+        guard let lhs = equation.lhs as? Self,  let rhs = equation.rhs as? AttributeConvertible else { return [] }
+        return [AttributeLayoutEquation(lhs: lhs, relation: equation.relation, rhs: rhs)]
     }
 }
 
-// MARK: Base Anchor
+/// Copies the anchor and applies the closure to the copy, returning the modified copy.
+/// - Parameter closure: The closure to apply to the copy.
+/// - Returns: The modified copy.
+fileprivate func modify<T: Anchor>(_ item: T, _ closure: (_ anchor: inout T) -> Void) -> T {
+    var copy = item
+    closure(&copy)
+    return copy
+}
 
-/// A type that represents a single anchor point or dimension of a view. 
-/// Examples are top, bottom, leading, trailing, centerX, centerY, width, height. 
-/// Each anchor has a reference to the item it belongs to, unless it represents a constant value.
-/// Depending on the anchor type, it can have an offset and a multiplier.
-public protocol BaseAnchor: Anchor {
-    var attribute: NSLayoutConstraint.Attribute { get }
-    var offset: CGFloat { set get }
-    var multiplier: CGFloat { get }
+// MARK: Anchor Additive and Multiplicative
+
+/// A protocol that enables an anchor to be modified by adding or subtracting a constant value.
+public protocol AnchorAdditiveProtocol: AttributeConvertible, Anchor {}
+
+/// A protocol that enables an anchor to be modified by multiplying or dividing by a constant value.
+public protocol AnchorMultiplicativeProtocol: AttributeConvertible, Anchor {
+    var multiplier: CGFloat { get set }
 }
 
 /// Adds a constant value to the anchor's offset.
 /// - Parameters: lhs: The anchor to modify. rhs: The value to add.
 /// - Returns: The modified anchor.
-public func +<AnchorType: BaseAnchor>(lhs: AnchorType, rhs: CGFloat) -> AnchorType {
-    lhs.modify { anchor in
+public func +<AnchorType>(lhs: AnchorType, rhs: CGFloat) -> AnchorType where AnchorType: AnchorAdditiveProtocol {
+    modify(lhs) { anchor in
         anchor.offset += rhs
     }
 }
@@ -57,20 +73,49 @@ public func +<AnchorType: BaseAnchor>(lhs: AnchorType, rhs: CGFloat) -> AnchorTy
 /// Subtracts a constant value from the anchor's offset.
 /// - Parameters: lhs: The anchor to modify. rhs: The value to subtract.
 /// - Returns: The modified anchor.
-public func -<AnchorType: BaseAnchor>(lhs: AnchorType, rhs: CGFloat) -> AnchorType {
-    lhs.modify { anchor in
+public func -<AnchorType>(lhs: AnchorType, rhs: CGFloat) -> AnchorType where AnchorType: AnchorAdditiveProtocol  {
+    modify(lhs) { anchor in
         anchor.offset -= rhs
     }
 }
 
 
+/// Multiplies the anchor's multiplier by a constant value.
+/// - Parameters: lhs: The anchor to modify. rhs: The value to multiply the multiplier by.
+/// - Returns: The modified anchor.
+public func *<AnchorType>(lhs: AnchorType, rhs: CGFloat) -> AnchorType where AnchorType: AnchorMultiplicativeProtocol {
+    modify(lhs) { anchor in
+        anchor.multiplier *= rhs
+    }
+}
+
+/// Multiplies the anchor's multiplier by a constant value.
+/// - Parameters: lhs: The value to multiply the multiplier by. rhs: The anchor to modify.
+/// - Returns: The modified anchor.
+public func *<AnchorType>(lhs: CGFloat, rhs: AnchorType) -> AnchorType  where AnchorType: AnchorMultiplicativeProtocol {
+    modify(rhs) { anchor in
+        anchor.multiplier *= lhs
+    }
+}
+
+/// Divides the anchor's multiplier by a constant value.
+/// - Parameters: lhs: The anchor to modify. rhs: The value to divide the multiplier by.
+/// - Returns: The modified anchor.
+public func /<AnchorType>(lhs: AnchorType, rhs: CGFloat) -> AnchorType where AnchorType: AnchorMultiplicativeProtocol  {
+    modify(lhs) { anchor in
+        anchor.multiplier /= rhs
+    }
+}
+
 // MARK: Vertical Anchor
 
 /// An Anchor that representing a vertical position of a view. Examples are top, bottom, centerY.
-public struct VerticalAnchor: BaseAnchor {
+public struct VerticalAnchor<Owner: Constrainable>: Anchor, AttributeConvertible, LayoutEquationLeftHandSide, AnchorAdditiveProtocol {
     /// The item (e.g., view or layoutGuide) that the anchor belongs to.
-    /// - Note: The owner is never nil for horizontal anchors.
-    public var owner: Constrainable?
+    public var owner: Owner
+    
+    /// The item (e.g., view or layoutGuide) that the anchor belongs to. This is the same as `owner`. Never nil for vertical anchors.
+    public var item: (any Constrainable)? { self.owner }
 
     /// The layout attribute of the anchor. Must be an attribute that represents a dimension.
     public let attribute: NSLayoutConstraint.Attribute
@@ -85,20 +130,28 @@ public struct VerticalAnchor: BaseAnchor {
     /// - Parameter owner: The item (e.g., view or layoutGuide) that the anchor belongs to.
     /// - Parameter attribute: The layout attribute of the anchor. Must be an attribute that represents a vertical position.
     /// - Parameter offset: The offset applied to the anchor when creating a constraint. Default is 0.
-    public init(owner: Constrainable, attribute: NSLayoutConstraint.Attribute, offset: CGFloat = 0) {
+    public init(owner: Owner, attribute: NSLayoutConstraint.Attribute, offset: CGFloat = 0) {
         self.owner = owner
         self.attribute = attribute
         self.offset = offset
+    }
+    
+    /// A function returning the corresponding anchor of another item. This is used to support convenience functions. No offsets or similar are be applied to the returned anchor.
+    /// - Example: `view.layout.top.correspondingAnchor(of: otherView)` returns `otherView.layout.top`.
+    public func correspondingAnchor(of other: Owner) -> Self {
+        return .init(owner: other, attribute: attribute)
     }
 }
 
 // MARK: - Horizontal Anchor
 
 /// An Anchor that representing a horizontal position of a view. Examples are leading, trailing, centerX.
-public struct HorizontalAnchor: BaseAnchor {
+public struct HorizontalAnchor<Owner: Constrainable>: Anchor, AttributeConvertible, LayoutEquationLeftHandSide, AnchorAdditiveProtocol {
     /// The item (e.g., view or layoutGuide) that the anchor belongs to.
-    /// - Note: The owner is never nil for horizontal anchors.
-    public var owner: Constrainable?
+    public var owner: Owner
+    
+    /// The item (e.g., view or layoutGuide) that the anchor belongs to. This is the same as `owner`. Never nil for horizontal anchors.
+    public var item: (any Constrainable)? { self.owner }
 
     /// The layout attribute of the anchor. Must be an attribute that represents a dimension.
     public let attribute: NSLayoutConstraint.Attribute
@@ -113,20 +166,28 @@ public struct HorizontalAnchor: BaseAnchor {
     /// - Parameter owner: The item (e.g., view or layoutGuide) that the anchor belongs to.
     /// - Parameter attribute: The layout attribute of the anchor. Must be an attribute that represents a horizontal position.
     /// - Parameter offset: The offset applied to the anchor when creating a constraint. Default is 0.
-    public init(owner: Constrainable, attribute: NSLayoutConstraint.Attribute, offset: CGFloat = 0) {
+    public init(owner: Owner, attribute: NSLayoutConstraint.Attribute, offset: CGFloat = 0) {
         self.owner = owner
         self.attribute = attribute
         self.offset = offset
+    }
+    
+    /// A function returning the corresponding anchor of another item. This is used to support convenience functions. No offsets or similar are be applied to the returned anchor.
+    /// - Example: `view.layout.leading.correspondingAnchor(of: otherView)` returns `otherView.layout.leading`.
+    public func correspondingAnchor(of other: Owner) -> Self {
+        return .init(owner: other, attribute: attribute)
     }
 }
 
 // MARK: Dimensional Anchor
 
 /// An Anchor that representing a dimension of a view. Examples are width and height.
-public struct DimensionalAnchor: BaseAnchor {
+public struct DimensionalAnchor<Owner: Constrainable>: Anchor, AttributeConvertible, LayoutEquationLeftHandSide, AnchorAdditiveProtocol, AnchorMultiplicativeProtocol {
     /// The item (e.g., view or layoutGuide) that the anchor belongs to.
-    /// - Note: The owner is nil for dimensional anchors that represent a constant value.
-    public var owner: Constrainable?
+    public var owner: Owner
+    
+    /// The item (e.g., view or layoutGuide) that the anchor belongs to. This is the same as `owner`. Never nil for dimensional anchors.
+    public var item: (any Constrainable)? { self.owner }
 
     /// The layout attribute of the anchor. Must be an attribute that represents a dimension.
     public let attribute: NSLayoutConstraint.Attribute
@@ -142,45 +203,20 @@ public struct DimensionalAnchor: BaseAnchor {
     /// - Parameter attribute: The layout attribute of the anchor. Must be an attribute that represents a dimension.
     /// - Parameter offset: The offset applied to the anchor when creating a constraint. Default is 0.
     /// - Parameter multiplier: The multiplier applied to the anchor when creating a constraint. Default is 1.
-    public init(owner: Constrainable, attribute: NSLayoutConstraint.Attribute, offset: CGFloat = 0, multiplier: CGFloat = 1) {
+    public init(owner: Owner, attribute: NSLayoutConstraint.Attribute, offset: CGFloat = 0, multiplier: CGFloat = 1) {
         self.owner = owner
         self.attribute = attribute
         self.offset = offset
         self.multiplier = multiplier
     }
 
-    init(owner: Constrainable?, attribute: NSLayoutConstraint.Attribute, offset: CGFloat = 0, multiplier: CGFloat = 1) {
-        self.owner = owner
-        self.attribute = attribute
-        self.offset = offset
-        self.multiplier = multiplier
-    }
-    
-    /// Initializes a new dimensional anchor that represents a constant value.
-    /// - Parameter value: The constant value that the anchor represents.
-    /// - Returns: A new dimensional anchor that represents the constant value.
-    public static func constant(_ value: CGFloat) -> Self {
-        .init(owner: nil, attribute: .notAnAttribute, offset: value, multiplier: 1)
+    /// A function returning the corresponding anchor of another item. This is used to support convenience functions. No offsets or similar are be applied to the returned anchor.
+    /// - Example: `view.layout.width.correspondingAnchor(of: otherView)` returns `otherView.layout.width`.
+    public func correspondingAnchor(of other: Owner) -> Self {
+        return .init(owner: owner, attribute: attribute)
     }
 }
 
-/// Multiplies the anchor's multiplier by a constant value.
-/// - Parameters: lhs: The anchor to modify. rhs: The value to multiply the multiplier by.
-/// - Returns: The modified anchor.
-public func *(lhs: DimensionalAnchor, rhs: CGFloat) -> DimensionalAnchor {
-    lhs.modify { anchor in
-        anchor.multiplier *= rhs
-    }
-}
-
-/// Multiplies the anchor's multiplier by a constant value.
-/// - Parameters: lhs: The value to multiply the multiplier by. rhs: The anchor to modify.
-/// - Returns: The modified anchor.
-public func *(lhs: CGFloat, rhs: DimensionalAnchor) -> DimensionalAnchor {
-    rhs.modify { anchor in
-        anchor.multiplier *= lhs
-    }
-}
 
 // MARK: Bounds Anchor
 
@@ -188,10 +224,10 @@ public func *(lhs: CGFloat, rhs: DimensionalAnchor) -> DimensionalAnchor {
 /// It can be used to create multiple constraints at once, constraining all edges of a view to another view.
 /// The anchor can be configured to constraint top, leading, bottom, and trailing edges.
 /// The insets can be used to add a constant value to the constraints.
-public struct BoundsAnchor: Anchor {
+public struct BoundsAnchor<Owner: Constrainable>: Anchor, LayoutEquationLeftHandSide {
     /// The item (e.g., view or layoutGuide) that the anchor belongs to.
     /// - Note: The owner is never nil for bounds anchors.
-    public var owner: Constrainable?
+    public var owner: Owner
 
     /// The edges that the anchor represents. Default is all edges (top, leading, bottom, trailing).
     var edges: NSDirectionalRectEdge
@@ -203,17 +239,23 @@ public struct BoundsAnchor: Anchor {
     /// - Parameter owner: The item (e.g., view or layoutGuide) that the anchor belongs to.
     /// - Parameter edges: The edges that the anchor represents. Default is all edges (top, leading, bottom, trailing).
     /// - Parameter insets: The insets that are added to the constraints. Default is no insets.
-    public init(owner: Constrainable, edges: NSDirectionalRectEdge = .all, insets: NSDirectionalEdgeInsets = .init()) {
+    public init(owner: Owner, edges: NSDirectionalRectEdge = .all, insets: NSDirectionalEdgeInsets = .init()) {
         self.owner = owner
         self.edges = edges
         self.insets = insets
+    }
+    
+    /// A function returning the corresponding anchor of another item. This is used to support convenience functions. No offsets or similar are be applied to the returned anchor.
+    /// - Example: `view.layout.bounds.correspondingAnchor(of: otherView)` returns `otherView.layout.bounds`.
+    public func correspondingAnchor(of other: Owner) -> Self {
+        return .init(owner: other, edges: edges)
     }
     
     /// Sets the edges that the anchor represents.
     /// - Parameter edges: The edges that the anchor represents.
     /// - Returns: The modified anchor.
     public func edges(_ edges: NSDirectionalRectEdge) -> Self {
-        self.modify { anchor in
+        modify(self) { anchor in
             anchor.edges = edges
         }
     }
@@ -222,7 +264,7 @@ public struct BoundsAnchor: Anchor {
     /// - Parameter value: The value to add to the insets.
     /// - Returns: The modified anchor.
     public func inset(_ value: CGFloat) -> Self {
-        modify { anchor in
+        modify(self) { anchor in
             anchor.insets.add(value)
         }
     }
@@ -232,7 +274,7 @@ public struct BoundsAnchor: Anchor {
     /// - Parameter value: The value to add to the insets.
     /// - Returns: The modified anchor.
     public func inset(_ edges: NSDirectionalRectEdge, _ value: CGFloat) -> Self {
-        modify { anchor in
+        modify(self) { anchor in
             anchor.insets.add(value, to: edges)
         }
     }
@@ -241,7 +283,7 @@ public struct BoundsAnchor: Anchor {
     /// - Parameter value: The value to add to the insets.
     /// - Returns: The modified anchor.
     public func inset(_ value: NSDirectionalEdgeInsets) -> Self {
-        modify { anchor in
+        modify(self) { anchor in
             anchor.insets = .init(top: insets.top + value.top,
                                   leading: insets.leading + value.leading,
                                   bottom: insets.bottom + value.bottom,
@@ -254,7 +296,7 @@ public struct BoundsAnchor: Anchor {
     /// - Parameter y: The value to add to the top and bottom insets.
     /// - Returns: The modified anchor.
     public func offset(x: CGFloat = 0, y: CGFloat = 0) -> Self {
-        modify { anchor in
+        modify(self) { anchor in
             anchor.insets = .init(top: insets.top + y, leading: insets.leading + x, bottom: insets.bottom - y, trailing: insets.trailing - x)
         }
     }
@@ -264,5 +306,41 @@ public struct BoundsAnchor: Anchor {
     /// - Returns: The modified anchor.
     public func offset(_ offset: CGPoint) -> Self {
         return self.offset(x: offset.x, y: offset.y)
+    }
+    
+    /// Returns up to four attribute equations that express the layout equation when both anchors are bounds anchors. Otherwise, an empty array is returned.
+    /// - Parameter equation: The layout equation that should be converted to attribute equations.
+    /// - Returns: An array of attribute equations that express the layout equation.
+    public static func attributeEquations(for equation: LayoutEquation) -> [AttributeLayoutEquation] {
+        guard let leftBoundsAnchor = equation.lhs as? BoundsAnchor,
+              let rightBoundsAnchor = equation.rhs as? BoundsAnchor else { return [] }
+        
+
+        let leftOwner = leftBoundsAnchor.owner
+        let rightOwner = rightBoundsAnchor.owner
+
+        let edges = leftBoundsAnchor.edges.intersection(rightBoundsAnchor.edges)
+        var result: [AttributeLayoutEquation] = []
+        if edges.contains(.top) {
+            result.append(.init(lhs: VerticalAnchor(owner: leftOwner, attribute: .top, offset: leftBoundsAnchor.insets.top),
+                                           relation: equation.relation.inverted,
+                                           rhs: VerticalAnchor(owner: rightOwner, attribute: .top, offset: rightBoundsAnchor.insets.top)))
+        }
+        if edges.contains(.leading) {
+            result.append(.init(lhs: HorizontalAnchor(owner: leftOwner, attribute: .leading, offset: leftBoundsAnchor.insets.leading),
+                                           relation: equation.relation.inverted,
+                                           rhs: HorizontalAnchor(owner: rightOwner, attribute: .leading, offset: rightBoundsAnchor.insets.leading)))
+        }
+        if edges.contains(.bottom) {
+            result.append(.init(lhs: VerticalAnchor(owner: leftOwner, attribute: .bottom, offset: -leftBoundsAnchor.insets.bottom),
+                                           relation: equation.relation,
+                                           rhs: VerticalAnchor(owner: rightOwner, attribute: .bottom, offset: -rightBoundsAnchor.insets.bottom)))
+        }
+        if edges.contains(.trailing) {
+            result.append(.init(lhs: HorizontalAnchor(owner: leftOwner, attribute: .trailing, offset: -leftBoundsAnchor.insets.trailing),
+                                           relation: equation.relation,
+                                           rhs: HorizontalAnchor(owner: rightOwner, attribute: .trailing, offset: -rightBoundsAnchor.insets.trailing)))
+        }
+        return result
     }
 }

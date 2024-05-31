@@ -15,13 +15,21 @@ import AppKit
 #endif
 
 
+public protocol ConstraintBuilderProtocol {
+    func buildConstraints() -> [Constraint]
+}
+
+extension Constraint: ConstraintBuilderProtocol {
+    public func buildConstraints() -> [Constraint] { [self] }
+}
+
+
 /// A result builder that can be used to create an array of constraints in a declarative way.
 @resultBuilder public struct ConstraintBuilder {
-    public static func buildBlock(_ components: (Constraint)...) -> [Constraint] {
+    public static func buildBlock(_ components: (any ConstraintBuilderProtocol)...) -> [ConstraintBuilderProtocol] {
         components
     }
-    public static func buildArray(_ components: [[Constraint]]) -> [Constraint] {
+    public static func buildArray(_ components: [[ConstraintBuilderProtocol]]) -> [ConstraintBuilderProtocol] {
         components.flatMap {$0}
     }
 }
-

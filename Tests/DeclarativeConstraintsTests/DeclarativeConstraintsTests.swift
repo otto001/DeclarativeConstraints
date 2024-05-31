@@ -171,4 +171,23 @@ final class DeclarativeConstraintsTests: XCTestCase {
         assertEquality(constraints[0], firstAnchor: parent.widthAnchor, secondAnchor: child.widthAnchor, constant: 2, multiplier: 1/4, priority: .required)
         assertEquality(constraints[1], firstAnchor: parent.heightAnchor, secondAnchor: child.heightAnchor, constant: 0, multiplier: 2, priority: .required)
     }
+    
+    func testBoundsAnchor() throws {
+        let parent = UIView()
+        let child = UIView()
+        parent.addSubview(child)
+        
+        parent.constrain {
+            Constraint(child.layout.bounds.edges(.horizontal) == parent.layout.bounds.inset(20))
+            Constraint(child.layout.bounds == parent.layout.bounds.edges(.top))
+        }
+        
+        let parentConstraints = parent.constraints.sorted { $0.firstAttribute.rawValue < $1.firstAttribute.rawValue }
+        
+        XCTAssertEqual(parentConstraints.count, 3)
+        
+        assertEquality(parentConstraints[0], firstAnchor: child.topAnchor, secondAnchor: parent.topAnchor, constant: 0, multiplier: 1, priority: .required)
+        assertEquality(parentConstraints[1], firstAnchor: child.leadingAnchor, secondAnchor: parent.leadingAnchor, constant: 20, multiplier: 1, priority: .required)
+        assertEquality(parentConstraints[2], firstAnchor: child.trailingAnchor, secondAnchor: parent.trailingAnchor, constant: -20, multiplier: 1, priority: .required)
+    }
 }

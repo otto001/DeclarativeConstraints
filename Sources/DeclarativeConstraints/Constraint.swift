@@ -17,7 +17,7 @@ import AppKit
 /// A constraint includes a layout equation and a priority. Additionally, it can be activated or deactivated. A constraint can be used to create one or multiple AutoLayout constraints, depending on the type of anchors used in the equation.
 public struct Constraint {
     /// The equation that the constraint represents.
-    public let equation: AnyLayoutEquation
+    public let equation: LayoutEquation
     /// The priority of the constraint.
     public let priority: NSLayoutConstraint.Priority
     /// Whether the constraint is active.
@@ -26,10 +26,38 @@ public struct Constraint {
     /// Creates a new constraint.
     /// - Parameter equation: The equation that the constraint represents.
     /// - Parameter priority: The priority of the constraint. Defaults to `.required`.
-    public init<AnchorType: Anchor>(_ equation: LayoutEquation<AnchorType>, priority: NSLayoutConstraint.Priority = .required) {
-        self.equation = equation.typeErased
+    public init(_ equation: LayoutEquation, priority: NSLayoutConstraint.Priority = .required) {
+        self.equation = equation
         self.priority = priority
     }
+    
+#if canImport(UIKit)
+    /// Creates a new constraint.
+    /// - Parameter equation: The equation that the constraint represents.
+    /// - Parameter priority: The priority of the constraint. Defaults to `.required`.
+    public init<AnchorType: LayoutEquationLeftHandSide>(_ anchor: AnchorType, priority: NSLayoutConstraint.Priority = .required) where AnchorType.Owner == UIView {
+        guard let otherOwner = anchor.owner.layout.parent?.owner else {
+            fatalError("Attempted to constrain a view without a superview to its superview.")
+        }
+        let rhs = anchor.correspondingAnchor(of: otherOwner)
+        self.equation = LayoutEquation(lhs: anchor, relation: .equal, rhs: rhs)
+        self.priority = priority
+    }
+#endif
+    
+#if canImport(AppKit)
+    /// Creates a new constraint.
+    /// - Parameter equation: The equation that the constraint represents.
+    /// - Parameter priority: The priority of the constraint. Defaults to `.required`.
+    public init<AnchorType: LayoutEquationLeftHandSide>(_ anchor: AnchorType, priority: NSLayoutConstraint.Priority = .required) where AnchorType.Owner == NSView {
+        guard let otherOwner = anchor.owner.layout.parent?.owner else {
+            fatalError("Attempted to constrain a view without a superview to its superview.")
+        }
+        let rhs = anchor.correspondingAnchor(of: otherOwner)
+        self.equation = LayoutEquation(lhs: anchor, relation: .equal, rhs: rhs)
+        self.priority = priority
+    }
+#endif
     
     /// Sets the active state of the constraint.
     /// - Parameter active: Whether the constraint is active.
@@ -44,43 +72,10 @@ public struct Constraint {
 
 extension Constraint {
     /// The normalized constraints that this constraint represents.
-    /// - Note: In the case of a constraint between two base anchors, exactly one normalized constraint is returned.
+    /// - Note: In the case of a constraint between two attribute convertible entities, exactly one normalized constraint is returned.
     internal var normalized: [NormalizedConstraint] {
-        
-        if let leftBoundsAnchor = equation.leftAnchor as? BoundsAnchor,
-            let rightBoundsAnchor = equation.rightAnchor as? BoundsAnchor,
-           let leftOwner = leftBoundsAnchor.owner,
-           let rightOwner = rightBoundsAnchor.owner {
-            
-            let edges = leftBoundsAnchor.edges.intersection(rightBoundsAnchor.edges)
-            var constraints: [NormalizedConstraint] = []
-            if edges.contains(.top) {
-                constraints.append(.init(.init(leftAnchor: VerticalAnchor(owner: leftOwner, attribute: .top, offset: leftBoundsAnchor.insets.top),
-                                               relation: equation.relation.inverted,
-                                               rightAnchor: VerticalAnchor(owner: rightOwner, attribute: .top, offset: rightBoundsAnchor.insets.top)),
-                                         priority: priority, isActive: isActive))
-            }
-            if edges.contains(.leading) {
-                constraints.append(.init(.init(leftAnchor: HorizontalAnchor(owner: leftOwner, attribute: .leading, offset: leftBoundsAnchor.insets.leading),
-                                               relation: equation.relation.inverted,
-                                               rightAnchor: HorizontalAnchor(owner: rightOwner, attribute: .leading, offset: rightBoundsAnchor.insets.leading)),
-                                         priority: priority, isActive: isActive))
-            }
-            if edges.contains(.bottom) {
-                constraints.append(.init(.init(leftAnchor: VerticalAnchor(owner: leftOwner, attribute: .bottom, offset: -leftBoundsAnchor.insets.bottom),
-                                               relation: equation.relation,
-                                               rightAnchor: VerticalAnchor(owner: rightOwner, attribute: .bottom, offset: -rightBoundsAnchor.insets.bottom)),
-                                         priority: priority, isActive: isActive))
-            }
-            if edges.contains(.trailing) {
-                constraints.append(.init(.init(leftAnchor: HorizontalAnchor(owner: leftOwner, attribute: .trailing, offset: -leftBoundsAnchor.insets.trailing),
-                                               relation: equation.relation,
-                                               rightAnchor: HorizontalAnchor(owner: rightOwner, attribute: .trailing, offset: -rightBoundsAnchor.insets.trailing)),
-                                         priority: priority, isActive: isActive))
-            }
-            return constraints
+        return self.equation.attributeEquations.map {
+            NormalizedConstraint($0, priority: priority, isActive: isActive)
         }
-        guard let baseEquation = self.equation.baseEquation else { return [] }
-        return [NormalizedConstraint(baseEquation, priority: priority, isActive: isActive)]
     }
 }

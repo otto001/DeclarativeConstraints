@@ -49,30 +49,24 @@ internal struct NormalizedConstraint {
     /// - Parameter equation: The equation that the constraint represents.
     /// - Parameter priority: The priority of the constraint.
     /// - Parameter isActive: Whether the constraint is active.
-    init(_ equation: AnyBaseLayoutEquation, priority: NSLayoutConstraint.Priority, isActive: Bool) {
-#if canImport(UIKit)
-        guard let leftItem = equation.leftAnchor.owner as? UIView else {
-            fatalError("The left side of a LayoutEquation must correspond to a UIView")
+    init(_ equation: AttributeLayoutEquation, priority: NSLayoutConstraint.Priority, isActive: Bool) {
+
+        guard let leftItem = equation.lhs.owner as? NativeView else {
+            fatalError("The left hand side of a LayoutEquation must correspond to a View (UIView/NSView) instance.")
         }
-#endif
-#if canImport(AppKit)
-        guard let leftItem = equation.leftAnchor.owner as? NSView else {
-            fatalError("The left side of a LayoutEquation must correspond to a NSView")
-        }
-#endif
         self.leftItem = leftItem
-        self.leftAttribute = equation.leftAnchor.attribute
+        self.leftAttribute = equation.lhs.attribute
         
-        self.rightItem = equation.rightAnchor.owner
-        self.rightAttribute = equation.rightAnchor.attribute
+        self.rightItem = equation.rhs.item
+        self.rightAttribute = equation.rhs.attribute
         
         self.relation = equation.relation
         
         // (a1*x1) + b1 = (a2*x2) + b2
         // (a1*x1) = (a2*x2) + b2 - b1
         // x1 = ((a2*x2) + b2 - b1)/a1 = (a2/a1)*x2 + (b2-b1)/a1
-        self.constant = (equation.rightAnchor.offset-equation.leftAnchor.offset)/equation.leftAnchor.multiplier
-        self.multiplier = (equation.rightAnchor.multiplier)/equation.leftAnchor.multiplier
+        self.constant = (equation.rhs.offset-equation.lhs.offset)/equation.lhs.multiplier
+        self.multiplier = (equation.rhs.multiplier)/equation.lhs.multiplier
         
         self.priority = priority
         self.isActive = isActive

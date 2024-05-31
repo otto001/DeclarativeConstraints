@@ -14,6 +14,17 @@ import UIKit
 import AppKit
 #endif
 
+#if canImport(UIKit)
+typealias NativeView = UIView
+typealias NativeLayoutGuide = UILayoutGuide
+#endif
+
+#if canImport(AppKit)
+typealias NativeView = NSView
+typealias NativeLayoutGuide = NSLayoutGuide
+#endif
+
+
 // MARK: - NSLayoutConstraint.Priority
 
 extension NSLayoutConstraint {

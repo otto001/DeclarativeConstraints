@@ -41,9 +41,9 @@ internal struct ConstraintReuseID: Equatable, Hashable {
 
 internal extension NSLayoutConstraint {
     var reuseID: ConstraintReuseID? {
-        guard let firstItem = self.firstItem as? Constrainable else { return nil }
+        guard let firstItem = self.firstItem as? any Constrainable else { return nil }
         return ConstraintReuseID(leftItem: firstItem, leftAttribute: firstAttribute,
-                                 rightItem: secondItem as? Constrainable, rightAttribute: secondAttribute,
+                                 rightItem: secondItem as? any Constrainable, rightAttribute: secondAttribute,
                                  relation: relation, multiplier: multiplier)
     }
 }
