@@ -47,11 +47,7 @@ internal struct NormalizedConstraint {
     /// - Parameter priority: The priority of the constraint.
     /// - Parameter isActive: Whether the constraint is active.
     init(_ equation: AttributeLayoutEquation, priority: NSLayoutConstraint.Priority) {
-
-        guard let leftItem = equation.lhs.owner as? NativeView else {
-            fatalError("The left hand side of a LayoutEquation must correspond to a View (UIView/NSView) instance.")
-        }
-        self.leftItem = leftItem
+        self.leftItem = equation.lhs.owner
         self.leftAttribute = equation.lhs.attribute
         
         self.rightItem = equation.rhs.item
