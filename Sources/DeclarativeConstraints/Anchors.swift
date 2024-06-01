@@ -37,7 +37,7 @@ extension Anchor where Self: AttributeConvertible {
     /// - Paramerter equation: The equation to convert.
     /// - Returns: An array containing a single AttributeLayoutEquation.
     public static func attributeEquations(for equation: LayoutEquation) -> [AttributeLayoutEquation] {
-        guard let lhs = equation.lhs as? Self,  let rhs = equation.rhs as? AttributeConvertible else { return [] }
+        guard let lhs = equation.lhs as? Self, let rhs = equation.rhs as? AttributeConvertible else { return [] }
         return [AttributeLayoutEquation(lhs: lhs, relation: equation.relation, rhs: rhs)]
     }
 }
@@ -220,20 +220,27 @@ public struct DimensionalAnchor<Owner: Constrainable>: Anchor, AttributeConverti
 
 // MARK: Bounds Anchor
 
+/// A protocol that defines a type that represents the bounds of a view. It can be used to create multiple constraints at once, constraining all edges of a view to another view.
+public protocol BoundsAnchorProtocol: Anchor {
+    var edges: NSDirectionalRectEdge { get }
+    var insets: NSDirectionalEdgeInsets { get }
+    func attributeAnchor(for edge: NSDirectionalRectEdge) -> any (Anchor & AttributeConvertible)
+}
+
 /// An Anchor that representing the bounds of a view. 
 /// It can be used to create multiple constraints at once, constraining all edges of a view to another view.
 /// The anchor can be configured to constraint top, leading, bottom, and trailing edges.
 /// The insets can be used to add a constant value to the constraints.
-public struct BoundsAnchor<Owner: Constrainable>: Anchor, LayoutEquationLeftHandSide {
+public struct BoundsAnchor<Owner: Constrainable>: BoundsAnchorProtocol, LayoutEquationLeftHandSide {
     /// The item (e.g., view or layoutGuide) that the anchor belongs to.
     /// - Note: The owner is never nil for bounds anchors.
     public var owner: Owner
 
     /// The edges that the anchor represents. Default is all edges (top, leading, bottom, trailing).
-    var edges: NSDirectionalRectEdge
+    public var edges: NSDirectionalRectEdge
 
     /// The insets that are added to the constraints. Default is no insets.
-    var insets: NSDirectionalEdgeInsets
+    public var insets: NSDirectionalEdgeInsets
     
     /// Initializes a new bounds anchor.
     /// - Parameter owner: The item (e.g., view or layoutGuide) that the anchor belongs to.
@@ -339,38 +346,52 @@ public struct BoundsAnchor<Owner: Constrainable>: Anchor, LayoutEquationLeftHand
         return self.offset(x: offset.x, y: offset.y)
     }
     
+    /// Returns the attribute anchor for a specific edge. If the specified edge is not a single edge, a fatal error is thrown.
+    /// - Parameter edge: The edge to return the attribute anchor for. Do not use `.all` or `.horizontal` or `.vertical` or other combinations of edges.
+    /// - Returns: The attribute anchor for the specified edge.
+    public func attributeAnchor(for edge: NSDirectionalRectEdge) -> any (Anchor & AttributeConvertible) {
+        switch edge {
+        case .top:
+            return VerticalAnchor(owner: owner, attribute: .top, offset: insets.top)
+        case .leading:
+            return VerticalAnchor(owner: owner, attribute: .leading, offset: insets.leading)
+        case .bottom:
+            return VerticalAnchor(owner: owner, attribute: .bottom, offset: insets.bottom)
+        case .trailing:
+            return VerticalAnchor(owner: owner, attribute: .trailing, offset: insets.trailing)
+        default:
+            fatalError("Not a single edge")
+        }
+    }
+    
     /// Returns up to four attribute equations that express the layout equation when both anchors are bounds anchors. Otherwise, an empty array is returned.
     /// - Parameter equation: The layout equation that should be converted to attribute equations.
     /// - Returns: An array of attribute equations that express the layout equation.
     public static func attributeEquations(for equation: LayoutEquation) -> [AttributeLayoutEquation] {
         guard let leftBoundsAnchor = equation.lhs as? BoundsAnchor,
-              let rightBoundsAnchor = equation.rhs as? BoundsAnchor else { return [] }
-        
-
-        let leftOwner = leftBoundsAnchor.owner
-        let rightOwner = rightBoundsAnchor.owner
+              let rightBoundsAnchor = equation.rhs as? any BoundsAnchorProtocol else { return [] }
 
         let edges = leftBoundsAnchor.edges.intersection(rightBoundsAnchor.edges)
         var result: [AttributeLayoutEquation] = []
         if edges.contains(.top) {
-            result.append(.init(lhs: VerticalAnchor(owner: leftOwner, attribute: .top, offset: leftBoundsAnchor.insets.top),
-                                           relation: equation.relation.inverted,
-                                           rhs: VerticalAnchor(owner: rightOwner, attribute: .top, offset: rightBoundsAnchor.insets.top)))
+            result.append(.init(lhs: leftBoundsAnchor.attributeAnchor(for: .top),
+                                relation: equation.relation.inverted,
+                                rhs: rightBoundsAnchor.attributeAnchor(for: .top)))
         }
         if edges.contains(.leading) {
-            result.append(.init(lhs: HorizontalAnchor(owner: leftOwner, attribute: .leading, offset: leftBoundsAnchor.insets.leading),
-                                           relation: equation.relation.inverted,
-                                           rhs: HorizontalAnchor(owner: rightOwner, attribute: .leading, offset: rightBoundsAnchor.insets.leading)))
+            result.append(.init(lhs: leftBoundsAnchor.attributeAnchor(for: .leading),
+                                relation: equation.relation.inverted,
+                                rhs: rightBoundsAnchor.attributeAnchor(for: .leading)))
         }
         if edges.contains(.bottom) {
-            result.append(.init(lhs: VerticalAnchor(owner: leftOwner, attribute: .bottom, offset: -leftBoundsAnchor.insets.bottom),
-                                           relation: equation.relation,
-                                           rhs: VerticalAnchor(owner: rightOwner, attribute: .bottom, offset: -rightBoundsAnchor.insets.bottom)))
+            result.append(.init(lhs: leftBoundsAnchor.attributeAnchor(for: .bottom),
+                                relation: equation.relation,
+                                rhs: rightBoundsAnchor.attributeAnchor(for: .bottom)))
         }
         if edges.contains(.trailing) {
-            result.append(.init(lhs: HorizontalAnchor(owner: leftOwner, attribute: .trailing, offset: -leftBoundsAnchor.insets.trailing),
-                                           relation: equation.relation,
-                                           rhs: HorizontalAnchor(owner: rightOwner, attribute: .trailing, offset: -rightBoundsAnchor.insets.trailing)))
+            result.append(.init(lhs: leftBoundsAnchor.attributeAnchor(for: .trailing),
+                                relation: equation.relation,
+                                rhs: rightBoundsAnchor.attributeAnchor(for: .trailing)))
         }
         return result
     }

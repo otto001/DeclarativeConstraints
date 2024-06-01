@@ -53,6 +53,14 @@ public extension LayoutProxy {
     
     /// The bounds anchor of the owner. This anchor represents the top, leading, bottom, and trailing anchors of the owner.
     var bounds: BoundsAnchor<Owner> { .init(owner: owner) }
+
+    /// The vertical bounds anchor of the owner. This anchor represents the top and bottom anchors of the owner.
+    /// - Note: The returned anchor is a `BoundsAnchor` with vertical edges set. Function wise it is equivalent to `bounds.edges(.vertical)`.
+    var verticalBounds: BoundsAnchor<Owner> { .init(owner: owner).edges(.vertical) }
+
+    /// The horizontal bounds anchor of the owner. This anchor represents the leading and trailing anchors of the owner.
+    /// - Note: The returned anchor is a `BoundsAnchor` with horizontal edges set. Function wise it is equivalent to `bounds.edges(.horizontal)`.
+    var horizontalBounds: BoundsAnchor<Owner> { .init(owner: owner).edges(.horizontal) }
 }
 
 #if canImport(AppKit)

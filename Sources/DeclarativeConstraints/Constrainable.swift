@@ -61,6 +61,13 @@ extension NativeView {
             self.constrain(normalizedConstraint, updateTranslatesAutoresizingMaskIntoConstraints: true)
         }
     }
+
+    /// Constrain the view with the given equation.
+    /// - Parameter equation: The equation to apply to the view.
+    /// - Parameter priority: The priority of the constraint. Defaults to `.required`.
+    public func constrain(_ equation: LayoutEquation, priority: NSLayoutConstraint.Priority = .required) {
+        self.constrain(Constraint(equation, priority: priority))
+    }
     
 #if canImport(UIKit)
     /// Constrain the view by constraining the given anchor to its superview.
