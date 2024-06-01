@@ -20,8 +20,6 @@ public struct Constraint {
     public let equation: LayoutEquation
     /// The priority of the constraint.
     public let priority: NSLayoutConstraint.Priority
-    /// Whether the constraint is active.
-    public var isActive: Bool = true
     
     /// Creates a new constraint.
     /// - Parameter equation: The equation that the constraint represents.
@@ -58,15 +56,6 @@ public struct Constraint {
         self.priority = priority
     }
 #endif
-    
-    /// Sets the active state of the constraint.
-    /// - Parameter active: Whether the constraint is active.
-    /// - Returns: A modified constraint with the new active state.
-    public func active(_ active: Bool) -> Self {
-        var copy = self
-        copy.isActive = active
-        return copy
-    }
 }
 
 
@@ -75,7 +64,7 @@ extension Constraint {
     /// - Note: In the case of a constraint between two attribute convertible entities, exactly one normalized constraint is returned.
     internal var normalized: [NormalizedConstraint] {
         return self.equation.attributeEquations.map {
-            NormalizedConstraint($0, priority: priority, isActive: isActive)
+            NormalizedConstraint($0, priority: priority)
         }
     }
 }

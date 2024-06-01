@@ -95,11 +95,18 @@ final class DeclarativeConstraintsTests: XCTestCase {
         let child = UIView()
         parent.addSubview(child)
         
+        var x: Bool = true
+        
         parent.constrain {
-            Constraint(child.layout.top == parent.layout.top)
+            if x {
+                Constraint(child.layout.top == parent.layout.top)
+            }
         }
+        x = false
         parent.constrain {
-            Constraint(child.layout.top == parent.layout.top).active(false)
+            if x {
+                Constraint(child.layout.top == parent.layout.top)
+            }
         }
         
         XCTAssertEqual(parent.constraints.count, 0)
@@ -115,10 +122,22 @@ final class DeclarativeConstraintsTests: XCTestCase {
         autoreleasepool {
             parent.constrain {
                 Constraint(child.layout.top == parent.layout.top)
+                Constraint(child.layout.leading == parent.layout.leading)
+                Constraint(child.layout.bottom == parent.layout.bottom)
+                Constraint(child.layout.trailing == parent.layout.trailing)
+                
+                Constraint(child.layout.centerX == parent.layout.centerX)
+                Constraint(child.layout.centerY == parent.layout.centerY)
+                
+                Constraint(child.layout.width == parent.layout.width)
+                Constraint(child.layout.height == parent.layout.height)
+                
+                Constraint(child.layout.width <= parent.layout.width)
+                Constraint(child.layout.height <= parent.layout.height)
             }
+            XCTAssertEqual(parent.constraints.count, 10)
             topConstaint = parent.constraints[0]
             parent.constrain {
-                Constraint(child.layout.top == parent.layout.top).active(false)
             }
         }
         XCTAssertEqual(parent.constraints.count, 0)
@@ -189,5 +208,22 @@ final class DeclarativeConstraintsTests: XCTestCase {
         assertEquality(parentConstraints[0], firstAnchor: child.topAnchor, secondAnchor: parent.topAnchor, constant: 0, multiplier: 1, priority: .required)
         assertEquality(parentConstraints[1], firstAnchor: child.leadingAnchor, secondAnchor: parent.leadingAnchor, constant: 20, multiplier: 1, priority: .required)
         assertEquality(parentConstraints[2], firstAnchor: child.trailingAnchor, secondAnchor: parent.trailingAnchor, constant: -20, multiplier: 1, priority: .required)
+    }
+    
+    func testConstraintStorageGarbageCollection() {
+        var parent: UIView? = UIView()
+        weak var storage: ConstraintStorage? = nil
+        storage = autoreleasepool {
+            let storage = ConstraintStorage()
+            parent!.addLayoutGuide(storage)
+            return storage
+        }
+        XCTAssertNotNil(parent)
+        XCTAssertNotNil(storage)
+        autoreleasepool {
+            parent = nil
+        }
+        XCTAssertNil(parent)
+        XCTAssertNil(storage)
     }
 }

@@ -37,9 +37,6 @@ internal struct NormalizedConstraint {
     /// The priority of the constraint.
     let priority: NSLayoutConstraint.Priority
     
-    /// Whether the constraint is active.
-    let isActive: Bool
-    
     /// The reuse ID of the constraint. Used to identify existing constraints that can be reused.
     var reuseID: ConstraintReuseID {
         return .init(leftItem: leftItem, leftAttribute: leftAttribute, rightItem: rightItem, rightAttribute: rightAttribute, relation: relation, multiplier: multiplier)
@@ -49,7 +46,7 @@ internal struct NormalizedConstraint {
     /// - Parameter equation: The equation that the constraint represents.
     /// - Parameter priority: The priority of the constraint.
     /// - Parameter isActive: Whether the constraint is active.
-    init(_ equation: AttributeLayoutEquation, priority: NSLayoutConstraint.Priority, isActive: Bool) {
+    init(_ equation: AttributeLayoutEquation, priority: NSLayoutConstraint.Priority) {
 
         guard let leftItem = equation.lhs.owner as? NativeView else {
             fatalError("The left hand side of a LayoutEquation must correspond to a View (UIView/NSView) instance.")
@@ -69,6 +66,5 @@ internal struct NormalizedConstraint {
         self.multiplier = (equation.rhs.multiplier)/equation.lhs.multiplier
         
         self.priority = priority
-        self.isActive = isActive
     }
 }
