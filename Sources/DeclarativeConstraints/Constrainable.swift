@@ -130,6 +130,9 @@ extension NativeView {
                 if currentConstraint.priority != constraint.priority {
                     currentConstraint.priority = constraint.priority
                 }
+                if !currentConstraint.isActive {
+                    currentConstraint.isActive = true
+                }
             } else {
                 // Set the identifier to identify the constraint as a declarative constraint
                 let newConstraint = self.constrain(constraint, updateTranslatesAutoresizingMaskIntoConstraints: true)
