@@ -32,8 +32,8 @@ public struct Constraint {
     }
     
 #if canImport(UIKit)
-    /// Creates a new constraint.
-    /// - Parameter equation: The equation that the constraint represents.
+    /// Creates a new constraint between the owner of the given anchor and its superview. Any offsets or multipliers of the anchor will be applied to the constraint.
+    /// - Parameter anchor: The anchor to constrain.
     /// - Parameter priority: The priority of the constraint. Defaults to `.required`.
     public init<AnchorType: LayoutEquationLeftHandSide>(_ anchor: AnchorType, priority: NSLayoutConstraint.Priority = .required) where AnchorType.Owner == UIView {
         guard let otherOwner = anchor.owner.layout.parent?.owner else {
@@ -46,8 +46,8 @@ public struct Constraint {
 #endif
     
 #if canImport(AppKit)
-    /// Creates a new constraint.
-    /// - Parameter equation: The equation that the constraint represents.
+    /// Creates a new constraint between the owner of the given anchor and its superview. Any offsets or multipliers of the anchor will be applied to the constraint.
+    /// - Parameter anchor: The anchor to constrain.
     /// - Parameter priority: The priority of the constraint. Defaults to `.required`.
     public init<AnchorType: LayoutEquationLeftHandSide>(_ anchor: AnchorType, priority: NSLayoutConstraint.Priority = .required) where AnchorType.Owner == NSView {
         guard let otherOwner = anchor.owner.layout.parent?.owner else {

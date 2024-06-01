@@ -77,6 +77,7 @@ public extension LayoutProxy where Owner == NSView {
     /// A layout proxy for the safe area layout guide of the owner.
     var safeArea: LayoutProxy<NSLayoutGuide> { .init(owner: owner.safeAreaLayoutGuide) }
     
+    /// The parent of the owner. This is the layout proxy of the superview, if the owner has a superview.
     var parent: LayoutProxy<NSView>? { owner.superview.map { .init(owner: $0) }}
 }
 #endif
@@ -103,6 +104,7 @@ public extension LayoutProxy where Owner == UIView {
     /// A layout proxy for the safe area layout guide of the owner.
     var safeArea: LayoutProxy<UILayoutGuide> { .init(owner: owner.safeAreaLayoutGuide) }
     
+    /// The parent of the owner. This is the layout proxy of the superview, if the owner has a superview.
     var parent: LayoutProxy<UIView>? { owner.superview.map { .init(owner: $0) }}
 }
 #endif

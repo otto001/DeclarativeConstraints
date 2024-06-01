@@ -18,7 +18,7 @@ import AppKit
 public protocol Constrainable: AnyObject {
     /// The type of the layout proxy that can be used to create constraints.
     associatedtype LayoutProxyType: LayoutProxyProtocol
-
+    
     /// The layout proxy that can be used to create constraints.
     var layout: LayoutProxyType { get }
 }
@@ -48,7 +48,7 @@ extension NativeView {
         }
         // Set the identifier to identify the constraint as a declarative constraint
         newConstraint.identifier = constraintIdentifier
-
+        
         newConstraint.priority = constraint.priority
         newConstraint.isActive = true
         return newConstraint
@@ -61,6 +61,35 @@ extension NativeView {
             self.constrain(normalizedConstraint)
         }
     }
+    
+#if canImport(UIKit)
+    /// Constrain the view by constraining the given anchor to its superview.
+    /// - Parameter anchor: A KeyPath that points to the anchor to constrain.
+    /// - Parameter priority: The priority of the constraint. Defaults to `.required`.
+    /// - Parameter modifyAnchor: A closure that can be used to modify the anchor before creating the constraint. Use this to apply offsets or multipliers to the anchor.
+    public func constrain<AnchorType: LayoutEquationLeftHandSide>(anchorToParent anchor: KeyPath<LayoutProxy<AnchorType.Owner>, AnchorType>, with priority: NSLayoutConstraint.Priority = .required, modifyAnchor: ((_ anchor: AnchorType) -> AnchorType)? = nil) where AnchorType.Owner == UIView {
+        var anchor = self.layout[keyPath: anchor]
+        anchor = modifyAnchor?(anchor) ?? anchor
+        for normalizedConstraint in Constraint(anchor, priority: priority).normalized {
+            self.constrain(normalizedConstraint)
+        }
+    }
+#endif
+    
+#if canImport(AppKit)
+/// Constrain the view by constraining the given anchor to its superview.
+    /// - Parameter anchor: A KeyPath that points to the anchor to constrain.
+    /// - Parameter priority: The priority of the constraint. Defaults to `.required`.
+    /// - Parameter modifyAnchor: A closure that can be used to modify the anchor before creating the constraint. Use this to apply offsets or multipliers to the anchor.
+    public func constrain<AnchorType: LayoutEquationLeftHandSide>(anchorToParent anchor: KeyPath<LayoutProxy<AnchorType.Owner>, AnchorType>, with priority: NSLayoutConstraint.Priority = .required, modifyAnchor: ((_ anchor: AnchorType) -> AnchorType)? = nil) where AnchorType.Owner == NSView {
+        var anchor = self.layout[keyPath: anchor]
+        anchor = modifyAnchor?(anchor) ?? anchor
+        for normalizedConstraint in Constraint(anchor, priority: priority).normalized {
+            self.constrain(normalizedConstraint)
+        }
+    }
+#endif
+    
     
     /// Constrain the view and its subviews with the given constraints.
     /// - Parameter block: A block that returns an array of constraints.

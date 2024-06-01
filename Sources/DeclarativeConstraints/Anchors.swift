@@ -291,6 +291,37 @@ public struct BoundsAnchor<Owner: Constrainable>: Anchor, LayoutEquationLeftHand
         }
     }
     
+    /// Subtracts a constant value to the insets for all edges.
+    /// - Parameter value: The value to subtract from the insets.
+    /// - Returns: The modified anchor.
+    public func padding(_ value: CGFloat) -> Self {
+        modify(self) { anchor in
+            anchor.insets.add(-value)
+        }
+    }
+    
+    /// Subtracts a constant value to the insets for specific edges.
+    /// - Parameter edges: The edges to subtract the value to.
+    /// - Parameter value: The value to subtract from the insets.
+    /// - Returns: The modified anchor.
+    public func padding(_ edges: NSDirectionalRectEdge, _ value: CGFloat) -> Self {
+        modify(self) { anchor in
+            anchor.insets.add(-value, to: edges)
+        }
+    }
+    
+    /// Subtracts a constant value to the insets for all edges.
+    /// - Parameter value: The value to subtract from the insets.
+    /// - Returns: The modified anchor.
+    public func padding(_ value: NSDirectionalEdgeInsets) -> Self {
+        modify(self) { anchor in
+            anchor.insets = .init(top: insets.top - value.top,
+                                  leading: insets.leading - value.leading,
+                                  bottom: insets.bottom - value.bottom,
+                                  trailing: insets.trailing - value.trailing)
+        }
+    }
+    
     /// Offsets the insets by a constant value, moving the anchor's position up, down, left, or right without changing the size.
     /// - Parameter x: The value to add to the leading and trailing insets.
     /// - Parameter y: The value to add to the top and bottom insets.

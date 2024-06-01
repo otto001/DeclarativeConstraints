@@ -16,12 +16,19 @@ import AppKit
 
 // MARK: - AttributeLayoutEquation
 
-/// A layout equation that can be used to create an AutoLayout constraint. Therefore, both sides of the equation must be AttributeConvertible.
+/// A layout equation that can be used to create an AutoLayout constraint. Therefore, both sides of the equation must be AttributeConvertible. The equation has the form `(m1 * x1) + c1 [==|>=|<=] (m2 * x2) + c2`, where `m1` and `m2` are multipliers, `x1` and `x2` are the values to be set (e.g., anchor points or dimensions), and `c1` and `c2` are constants. The equation can also be written as `lhs [==|>=|<=] rhs`.
 public struct AttributeLayoutEquation {
+    /// The left-hand side of the equation.
     public let lhs: any (AttributeConvertible & Anchor)
+    /// The relation between the left and right side of the equation.
     public let relation: NSLayoutConstraint.Relation
+    /// The right-hand side of the equation.
     public let rhs: any AttributeConvertible
     
+    /// Creates a new attribute equation.
+    /// - Parameter lhs: The left-hand side of the equation.
+    /// - Parameter relation: The relation between the left and right side of the equation.
+    /// - Parameter rhs: The right-hand side of the equation.
     public init(lhs: any (AttributeConvertible & Anchor), relation: NSLayoutConstraint.Relation, rhs: any AttributeConvertible) {
         self.lhs = lhs
         self.relation = relation
@@ -37,11 +44,13 @@ public protocol LayoutEquationRightHandSide {}
 /// A protocol that defines a type that can be used on the left-hand side of a layout equation.  This protocol is used to provide type safety when creating layout equations. The left-hand side of a layout equation must be an anchor. Every entity that can be used on the left-hand side of a layout equation can also be used on the right-hand side.
 public protocol LayoutEquationLeftHandSide: LayoutEquationRightHandSide, Anchor {}
 
-/// A layout equation that can be used to create constraints.
-/// - Note: This type is used to store layout equations in a type-erased way. Be careful when using it, as it does not provide type safety or checks that the anchors are compatible. Never use this type directly, always use `LayoutEquation` instead.
+/// A layout equation that can be used to create constraints. A layout equation consists of a left-hand side, a relation, and a right-hand side. The left-hand side must be an anchor, while the right-hand side can be an anchor or a constant value. The equation has the form `lhs relation rhs`.
 public struct LayoutEquation {
+    /// The left-hand side of the equation. This must be an anchor.
     public let lhs: any LayoutEquationLeftHandSide
+    /// The relation between the left and right side of the equation.
     public let relation: NSLayoutConstraint.Relation
+    /// The right-hand side of the equation. This can be an anchor or a constant value.
     public let rhs: any LayoutEquationRightHandSide
     
     /// Creates a new layout equation between two anchors of the same type.
