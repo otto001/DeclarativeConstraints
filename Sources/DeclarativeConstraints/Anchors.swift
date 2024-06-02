@@ -356,9 +356,9 @@ public struct BoundsAnchor<Owner: Constrainable>: BoundsAnchorProtocol, LayoutEq
         case .leading:
             return VerticalAnchor(owner: owner, attribute: .leading, offset: insets.leading)
         case .bottom:
-            return VerticalAnchor(owner: owner, attribute: .bottom, offset: insets.bottom)
+            return VerticalAnchor(owner: owner, attribute: .bottom, offset: -insets.bottom)
         case .trailing:
-            return VerticalAnchor(owner: owner, attribute: .trailing, offset: insets.trailing)
+            return VerticalAnchor(owner: owner, attribute: .trailing, offset: -insets.trailing)
         default:
             fatalError("Not a single edge")
         }
