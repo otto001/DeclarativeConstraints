@@ -85,7 +85,7 @@ extension NativeView {
 #endif
     
 #if canImport(AppKit)
-/// Constrain the view by constraining the given anchor to its superview.
+    /// Constrain the view by constraining the given anchor to its superview.
     /// - Parameter anchor: A KeyPath that points to the anchor to constrain.
     /// - Parameter priority: The priority of the constraint. Defaults to `.required`.
     /// - Parameter modifyAnchor: A closure that can be used to modify the anchor before creating the constraint. Use this to apply offsets or multipliers to the anchor.
@@ -93,7 +93,7 @@ extension NativeView {
         var anchor = self.layout[keyPath: anchor]
         anchor = modifyAnchor?(anchor) ?? anchor
         for normalizedConstraint in Constraint(anchor, priority: priority).normalized {
-            self.constrain(normalizedConstraint)
+            self.constrain(normalizedConstraint, updateTranslatesAutoresizingMaskIntoConstraints: false)
         }
         self.translatesAutoresizingMaskIntoConstraints = false
     }
@@ -143,7 +143,7 @@ extension NativeView {
         
         // Deactivate all remaining constraints that were not reused
         if currentConstraintsMap.count >= 10 {
-            // If more than ten are deactivated, purge to save memory
+            // If more ten or more are deactivated, purge to save memory
             for (reuseID, constraint) in currentConstraintsMap {
                 constraintStorage.storedConstraints.removeValue(forKey: reuseID)
                 constraint.isActive = false
