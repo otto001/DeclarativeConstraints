@@ -110,7 +110,7 @@ public func /<AnchorType>(lhs: AnchorType, rhs: CGFloat) -> AnchorType where Anc
 // MARK: Vertical Anchor
 
 /// An Anchor that representing a vertical position of a view. Examples are top, bottom, centerY.
-public struct VerticalAnchor<Owner: Constrainable>: Anchor, AttributeConvertible, LayoutEquationLeftHandSide, AnchorAdditiveProtocol {
+public struct VerticalAnchor<Owner: Constrainable>: Anchor, AttributeConvertible, LayoutEquationLeftHandSide, AnchorAdditiveProtocol, AnchorMultiplicativeProtocol {
     /// The item (e.g., view or layoutGuide) that the anchor belongs to.
     public var owner: Owner
     
@@ -124,16 +124,18 @@ public struct VerticalAnchor<Owner: Constrainable>: Anchor, AttributeConvertible
     public var offset: CGFloat
 
     /// The multiplier applied to the anchor when creating a constraint. Always 1.0 for vertical anchors.
-    public var multiplier: CGFloat { 1.0 }
+    public var multiplier: CGFloat
     
     /// Initializes a new vertical anchor.
     /// - Parameter owner: The item (e.g., view or layoutGuide) that the anchor belongs to.
     /// - Parameter attribute: The layout attribute of the anchor. Must be an attribute that represents a vertical position.
     /// - Parameter offset: The offset applied to the anchor when creating a constraint. Default is 0.
-    public init(owner: Owner, attribute: NSLayoutConstraint.Attribute, offset: CGFloat = 0) {
+    /// - Parameter multiplier: The multiplier applied to the anchor when creating a constraint. Default is 1.
+    public init(owner: Owner, attribute: NSLayoutConstraint.Attribute, offset: CGFloat = 0, multiplier: CGFloat = 1) {
         self.owner = owner
         self.attribute = attribute
         self.offset = offset
+        self.multiplier = multiplier
     }
     
     /// A function returning the corresponding anchor of another item. This is used to support convenience functions. No offsets or similar are be applied to the returned anchor.
@@ -146,7 +148,7 @@ public struct VerticalAnchor<Owner: Constrainable>: Anchor, AttributeConvertible
 // MARK: - Horizontal Anchor
 
 /// An Anchor that representing a horizontal position of a view. Examples are leading, trailing, centerX.
-public struct HorizontalAnchor<Owner: Constrainable>: Anchor, AttributeConvertible, LayoutEquationLeftHandSide, AnchorAdditiveProtocol {
+public struct HorizontalAnchor<Owner: Constrainable>: Anchor, AttributeConvertible, LayoutEquationLeftHandSide, AnchorAdditiveProtocol, AnchorMultiplicativeProtocol {
     /// The item (e.g., view or layoutGuide) that the anchor belongs to.
     public var owner: Owner
     
@@ -160,16 +162,17 @@ public struct HorizontalAnchor<Owner: Constrainable>: Anchor, AttributeConvertib
     public var offset: CGFloat
 
     /// The multiplier applied to the anchor when creating a constraint. Always 1.0 for horizontal anchors.
-    public var multiplier: CGFloat { 1.0 }
+    public var multiplier: CGFloat
     
     /// Initializes a new horizontal anchor.
     /// - Parameter owner: The item (e.g., view or layoutGuide) that the anchor belongs to.
     /// - Parameter attribute: The layout attribute of the anchor. Must be an attribute that represents a horizontal position.
-    /// - Parameter offset: The offset applied to the anchor when creating a constraint. Default is 0.
-    public init(owner: Owner, attribute: NSLayoutConstraint.Attribute, offset: CGFloat = 0) {
+    /// - Parameter multiplier: The multiplier applied to the anchor when creating a constraint. Default is 1.
+    public init(owner: Owner, attribute: NSLayoutConstraint.Attribute, offset: CGFloat = 0, multiplier: CGFloat = 1) {
         self.owner = owner
         self.attribute = attribute
         self.offset = offset
+        self.multiplier = multiplier
     }
     
     /// A function returning the corresponding anchor of another item. This is used to support convenience functions. No offsets or similar are be applied to the returned anchor.
