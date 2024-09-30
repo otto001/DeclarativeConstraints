@@ -64,3 +64,32 @@ internal struct NormalizedConstraint {
         self.priority = priority
     }
 }
+
+extension NormalizedConstraint {
+    /// Translates the normalized constraint into an AutoLayout constraint and activates it.
+    /// - Parameter updateTranslatesAutoresizingMaskIntoConstraints: Whether to set the `translatesAutoresizingMaskIntoConstraints` property of the equation items to true.
+    /// - Parameter doNotUpdateFor: A view that should not have its `translatesAutoresizingMaskIntoConstraints` property updated, even if it is part of the equation.
+    /// - Returns: The created AutoLayout constraint.
+    @discardableResult func activate(updateTranslatesAutoresizingMaskIntoConstraints: Bool, doNotUpdateFor: NativeView? = nil) -> NSLayoutConstraint {
+        // Create a new constraint
+        let newConstraint = NSLayoutConstraint(item: leftItem, attribute: leftAttribute,
+                                               relatedBy: relation,
+                                               toItem: rightItem, attribute: rightAttribute,
+                                               multiplier: multiplier,
+                                               constant: constant)
+        
+        if updateTranslatesAutoresizingMaskIntoConstraints {
+            // Setup the items for AutoLayout (not applied to self for to prevent conflicts)
+            if rightItem !== doNotUpdateFor, let view = rightItem as? NativeView {
+                view.translatesAutoresizingMaskIntoConstraints = false
+            }
+            if leftItem !== doNotUpdateFor, let view = leftItem as? NativeView {
+                view.translatesAutoresizingMaskIntoConstraints = false
+            }
+        }
+        
+        newConstraint.priority = priority
+        newConstraint.isActive = true
+        return newConstraint
+    }
+}

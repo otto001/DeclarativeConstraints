@@ -22,7 +22,7 @@ Constraining a child to the bounds of its parent can be accomplished with way fe
 
 ```swift
 parent.constrain {
-    Constraint(child.layout.bounds == parent.layout.bounds)
+    child.layout.bounds == parent.layout.bounds
 }
 ```
 
@@ -46,10 +46,10 @@ More complex layouts can also be realized with ease:
 
 ```swift
 parent.constrain {
-    Constraint(child.layout.bounds.edges(.horizontal) == parent.layout.bounds.inset(20))
-    Constraint(child.layout.top == parent.layout.top + 10)
+    child.layout.bounds.edges(.horizontal) == parent.layout.bounds.edges(.horizontal).inset(20)
+    child.layout.top == parent.layout.top + 10
     Constraint(child.layout.height == 2 * child.layout.width, priority: .defaultHigh)
-    Constraint(child.layout.height + 10 <= parent.layout.height)
+    child.layout.height + 10 <= parent.layout.height
 }
 ```
 

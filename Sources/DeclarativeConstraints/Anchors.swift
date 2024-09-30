@@ -198,7 +198,7 @@ public struct DimensionalAnchor<Owner: Constrainable>: Anchor, AttributeConverti
     /// The offset applied to the anchor when creating a constraint.
     public var offset: CGFloat
 
-    /// The multiplier applied to the anchor when creating a constraint. This value is ignored for constant anchors.
+    /// The multiplier applied to the anchor when creating a constraint.
     public var multiplier: CGFloat
 
     /// Initializes a new dimensional anchor.
@@ -220,6 +220,47 @@ public struct DimensionalAnchor<Owner: Constrainable>: Anchor, AttributeConverti
     }
 }
 
+// MARK: Aspect Anchor
+
+/// An Anchor that representing a the aspect ratio of the owner. Can only be constrained against constant values.
+public struct AspectAnchor<Owner: Constrainable>: Anchor, LayoutEquationLeftHandSide{
+    /// The item (e.g., view or layoutGuide) that the anchor belongs to.
+    public var owner: Owner
+    
+    /// The item (e.g., view or layoutGuide) that the anchor belongs to. This is the same as `owner`. Never nil for aspect anchors.
+    public var item: (any Constrainable)? { self.owner }
+
+    /// The offset applied to the anchor when creating a constraint. This value is ignored not used for aspect anchors.
+    public var offset: CGFloat { 0 }
+
+    /// The multiplier applied to the anchor when creating a constraint. This value is ignored not used for aspect anchors.
+    public var multiplier: CGFloat { 1 }
+
+    /// Initializes a new dimensional anchor.
+    /// - Parameter owner: The item (e.g., view or layoutGuide) that the anchor belongs to.
+    public init(owner: Owner) {
+        self.owner = owner
+    }
+    
+    /// A function returning the corresponding anchor of another item. This is used to support convenience functions. No offsets or similar are be applied to the returned anchor.
+    /// - Example: `view.layout.aspect.correspondingAnchor(of: otherView)` returns `otherView.layout.aspect`.
+    public func correspondingAnchor(of other: Owner) -> AspectAnchor<Owner> {
+        .init(owner: other)
+    }
+    
+    /// Returns a single equation that express the aspect ratio. An empty array is returned if either the lhs is not an AspectAnchor or the rhs is not a constant.
+    /// - Parameter equation: The layout equation that should be converted to attribute equations.
+    /// - Returns: An array of attribute equations that express the layout equation.
+    public static func attributeEquations(for equation: LayoutEquation) -> [AttributeLayoutEquation] {
+        guard let lhs = equation.lhs as? AspectAnchor,
+              let rhs = equation.rhs as? LayoutConstant else { return [] }
+        
+        return [.init(lhs: DimensionalAnchor(owner: lhs.owner, attribute: .width),
+               relation: equation.relation,
+                      rhs: DimensionalAnchor(owner: lhs.owner, attribute: .height, multiplier: rhs.offset))]
+    }
+    
+}
 
 // MARK: Bounds Anchor
 
@@ -258,7 +299,7 @@ public struct BoundsAnchor<Owner: Constrainable>: BoundsAnchorProtocol, LayoutEq
     /// A function returning the corresponding anchor of another item. This is used to support convenience functions. No offsets or similar are be applied to the returned anchor.
     /// - Example: `view.layout.bounds.correspondingAnchor(of: otherView)` returns `otherView.layout.bounds`.
     public func correspondingAnchor(of other: Owner) -> Self {
-        return .init(owner: other, edges: edges)
+        .init(owner: other, edges: edges)
     }
     
     /// Sets the edges that the anchor represents.

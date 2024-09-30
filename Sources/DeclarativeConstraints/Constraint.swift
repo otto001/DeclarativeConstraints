@@ -68,3 +68,14 @@ extension Constraint {
         }
     }
 }
+
+extension Constraint {
+    /// Activate a set of constraints. This function does not support declarative deactivation of constraints. Consider constraints activated with this method as permanent.
+    /// - Note: When using this method, the `translatesAutoresizingMaskIntoConstraints` property of the views involved in the constraints will not be updated.
+    public static func activate(@ConstraintBuilder _ block: () -> any ConstraintBuilderProtocol) {
+        let constraints = block().buildConstraints().flatMap {$0.normalized}
+        for constraint in constraints {
+            constraint.activate(updateTranslatesAutoresizingMaskIntoConstraints: false)
+        }
+    }
+}

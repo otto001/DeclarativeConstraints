@@ -51,6 +51,9 @@ public extension LayoutProxy {
     /// The height anchor of the owner.
     var height: DimensionalAnchor<Owner> { .init(owner: owner, attribute: .height) }
     
+    /// The aspect ratio anchor of the owner.
+    var aspect: AspectAnchor<Owner> { .init(owner: owner) }
+    
     /// The bounds anchor of the owner. This anchor represents the top, leading, bottom, and trailing anchors of the owner.
     var bounds: BoundsAnchor<Owner> { .init(owner: owner) }
 

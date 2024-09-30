@@ -103,6 +103,16 @@ public struct LayoutEquation {
         self.rhs = LayoutConstant(offset: constant)
     }
     
+    /// Creates a new layout equation between an aspect anchor and a constant value.
+    /// - Parameter lhs: The left-hand side of the equation.
+    /// - Parameter relation: The relation between the left and right side of the equation.
+    /// - Parameter constant: The constant value on the right-hand side of the equation.
+    public init<LeftOwner: Constrainable>(lhs: AspectAnchor<LeftOwner>, relation: NSLayoutConstraint.Relation, constant: CGFloat) {
+        self.lhs = lhs
+        self.relation = relation
+        self.rhs = LayoutConstant(offset: constant)
+    }
+    
     /// Creates a new layout equation between two bounds anchors.
     /// - Parameter lhs: The left-hand side of the equation.
     /// - Parameter relation: The relation between the left and right side of the equation.
@@ -142,6 +152,11 @@ public func ==<LeftOwner: Constrainable>(lhs: DimensionalAnchor<LeftOwner>, rhs:
     return .init(lhs: lhs, relation: .equal, constant: rhs)
 }
 
+/// Creates a layout equation with the equal relation between an aspect anchor and a constant value.
+public func ==<LeftOwner: Constrainable>(lhs: AspectAnchor<LeftOwner>, rhs: CGFloat) -> LayoutEquation {
+    return .init(lhs: lhs, relation: .equal, constant: rhs)
+}
+
 /// Creates a layout equation with the equal relation between two bounds anchors.
 public func ==<LeftOwner: Constrainable, RightOwner: Constrainable>(lhs: BoundsAnchor<LeftOwner>, rhs: BoundsAnchor<RightOwner>) -> LayoutEquation {
     return .init(lhs: lhs, relation: .equal, rhs: rhs)
@@ -167,6 +182,11 @@ public func <=<LeftOwner: Constrainable>(lhs: DimensionalAnchor<LeftOwner>, rhs:
     return .init(lhs: lhs, relation: .lessThanOrEqual, constant: rhs)
 }
 
+/// Creates a layout equation with the less than or equal relation between an aspect anchor and a constant value.
+public func <=<LeftOwner: Constrainable>(lhs: AspectAnchor<LeftOwner>, rhs: CGFloat) -> LayoutEquation {
+    return .init(lhs: lhs, relation: .lessThanOrEqual, constant: rhs)
+}
+
 /// Creates a layout equation with the less than or equal relation between two bounds anchors.
 public func <=<LeftOwner: Constrainable, RightOwner: Constrainable>(lhs: BoundsAnchor<LeftOwner>, rhs: BoundsAnchor<RightOwner>) -> LayoutEquation {
     return .init(lhs: lhs, relation: .lessThanOrEqual, rhs: rhs)
@@ -189,6 +209,11 @@ public func >=<LeftOwner: Constrainable, RightOwner: Constrainable>(lhs: Dimensi
 
 /// Creates a layout equation with the greater than or equal relation between a dimensional anchor and a constant value.
 public func >=<LeftOwner: Constrainable>(lhs: DimensionalAnchor<LeftOwner>, rhs: CGFloat) -> LayoutEquation {
+    return .init(lhs: lhs, relation: .greaterThanOrEqual, constant: rhs)
+}
+
+/// Creates a layout equation with the greater than or equal relation between an aspect anchor and a constant value.
+public func >=<LeftOwner: Constrainable>(lhs: AspectAnchor<LeftOwner>, rhs: CGFloat) -> LayoutEquation {
     return .init(lhs: lhs, relation: .greaterThanOrEqual, constant: rhs)
 }
 

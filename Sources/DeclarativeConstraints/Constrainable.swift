@@ -32,26 +32,7 @@ extension NativeView {
     /// Constrain the view with the given constraint.
     /// - Parameter constraint: The constraint to apply to the view.
     @discardableResult private func constrain(_ constraint: NormalizedConstraint, updateTranslatesAutoresizingMaskIntoConstraints: Bool) -> NSLayoutConstraint {
-        // Create a new constraint
-        let newConstraint = NSLayoutConstraint(item: constraint.leftItem, attribute: constraint.leftAttribute,
-                                               relatedBy: constraint.relation,
-                                               toItem: constraint.rightItem, attribute: constraint.rightAttribute,
-                                               multiplier: constraint.multiplier,
-                                               constant: constraint.constant)
-        
-        if updateTranslatesAutoresizingMaskIntoConstraints {
-            // Setup the items for AutoLayout (not applied to self for to prevent conflicts)
-            if constraint.rightItem !== self, let view = constraint.rightItem as? NativeView {
-                view.translatesAutoresizingMaskIntoConstraints = false
-            }
-            if constraint.leftItem !== self, let view = constraint.leftItem as? NativeView {
-                view.translatesAutoresizingMaskIntoConstraints = false
-            }
-        }
-        
-        newConstraint.priority = constraint.priority
-        newConstraint.isActive = true
-        return newConstraint
+        constraint.activate(updateTranslatesAutoresizingMaskIntoConstraints: updateTranslatesAutoresizingMaskIntoConstraints, doNotUpdateFor: self)
     }
     
     /// Constrain the view with the given constraint.
@@ -68,36 +49,6 @@ extension NativeView {
     public func constrain(_ equation: LayoutEquation, priority: NSLayoutConstraint.Priority = .required) {
         self.constrain(Constraint(equation, priority: priority))
     }
-    
-#if canImport(UIKit)
-    /// Constrain the view by constraining the given anchor to its superview.
-    /// - Parameter anchor: A KeyPath that points to the anchor to constrain.
-    /// - Parameter priority: The priority of the constraint. Defaults to `.required`.
-    /// - Parameter modifyAnchor: A closure that can be used to modify the anchor before creating the constraint. Use this to apply offsets or multipliers to the anchor.
-    public func constrain<AnchorType: LayoutEquationLeftHandSide>(anchorToParent anchor: KeyPath<LayoutProxy<AnchorType.Owner>, AnchorType>, with priority: NSLayoutConstraint.Priority = .required, modifyAnchor: ((_ anchor: AnchorType) -> AnchorType)? = nil) where AnchorType.Owner == UIView {
-        var anchor = self.layout[keyPath: anchor]
-        anchor = modifyAnchor?(anchor) ?? anchor
-        for normalizedConstraint in Constraint(anchor, priority: priority).normalized {
-            self.constrain(normalizedConstraint, updateTranslatesAutoresizingMaskIntoConstraints: false)
-        }
-        self.translatesAutoresizingMaskIntoConstraints = false
-    }
-#endif
-    
-#if canImport(AppKit)
-    /// Constrain the view by constraining the given anchor to its superview.
-    /// - Parameter anchor: A KeyPath that points to the anchor to constrain.
-    /// - Parameter priority: The priority of the constraint. Defaults to `.required`.
-    /// - Parameter modifyAnchor: A closure that can be used to modify the anchor before creating the constraint. Use this to apply offsets or multipliers to the anchor.
-    public func constrain<AnchorType: LayoutEquationLeftHandSide>(anchorToParent anchor: KeyPath<LayoutProxy<AnchorType.Owner>, AnchorType>, with priority: NSLayoutConstraint.Priority = .required, modifyAnchor: ((_ anchor: AnchorType) -> AnchorType)? = nil) where AnchorType.Owner == NSView {
-        var anchor = self.layout[keyPath: anchor]
-        anchor = modifyAnchor?(anchor) ?? anchor
-        for normalizedConstraint in Constraint(anchor, priority: priority).normalized {
-            self.constrain(normalizedConstraint, updateTranslatesAutoresizingMaskIntoConstraints: false)
-        }
-        self.translatesAutoresizingMaskIntoConstraints = false
-    }
-#endif
     
     private func constraintStorage() -> ConstraintStorage {
         for layoutGuide in self.layoutGuides {
@@ -154,4 +105,39 @@ extension NativeView {
             }
         }
     }
+}
+
+// MARK: Convenience
+
+extension NativeView {
+    
+#if canImport(UIKit)
+    /// Constrain the view by constraining the given anchor to its superview.
+    /// - Parameter anchor: A KeyPath that points to the anchor to constrain.
+    /// - Parameter priority: The priority of the constraint. Defaults to `.required`.
+    /// - Parameter modifyAnchor: A closure that can be used to modify the anchor before creating the constraint. Use this to apply offsets or multipliers to the anchor.
+    public func constrain<AnchorType: LayoutEquationLeftHandSide>(anchorToParent anchor: KeyPath<LayoutProxy<AnchorType.Owner>, AnchorType>, with priority: NSLayoutConstraint.Priority = .required, modifyAnchor: ((_ anchor: AnchorType) -> AnchorType)? = nil) where AnchorType.Owner == UIView {
+        var anchor = self.layout[keyPath: anchor]
+        anchor = modifyAnchor?(anchor) ?? anchor
+        for normalizedConstraint in Constraint(anchor, priority: priority).normalized {
+            self.constrain(normalizedConstraint, updateTranslatesAutoresizingMaskIntoConstraints: false)
+        }
+        self.translatesAutoresizingMaskIntoConstraints = false
+    }
+#endif
+    
+#if canImport(AppKit)
+    /// Constrain the view by constraining the given anchor to its superview.
+    /// - Parameter anchor: A KeyPath that points to the anchor to constrain.
+    /// - Parameter priority: The priority of the constraint. Defaults to `.required`.
+    /// - Parameter modifyAnchor: A closure that can be used to modify the anchor before creating the constraint. Use this to apply offsets or multipliers to the anchor.
+    public func constrain<AnchorType: LayoutEquationLeftHandSide>(anchorToParent anchor: KeyPath<LayoutProxy<AnchorType.Owner>, AnchorType>, with priority: NSLayoutConstraint.Priority = .required, modifyAnchor: ((_ anchor: AnchorType) -> AnchorType)? = nil) where AnchorType.Owner == NSView {
+        var anchor = self.layout[keyPath: anchor]
+        anchor = modifyAnchor?(anchor) ?? anchor
+        for normalizedConstraint in Constraint(anchor, priority: priority).normalized {
+            self.constrain(normalizedConstraint, updateTranslatesAutoresizingMaskIntoConstraints: false)
+        }
+        self.translatesAutoresizingMaskIntoConstraints = false
+    }
+#endif
 }

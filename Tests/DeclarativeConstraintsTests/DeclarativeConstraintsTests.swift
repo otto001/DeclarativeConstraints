@@ -16,12 +16,15 @@ final class DeclarativeConstraintsTests: XCTestCase {
         if constraint.firstAnchor == secondAnchor {
             XCTAssertEqual(constraint.firstAnchor, secondAnchor)
             XCTAssertEqual(constraint.secondAnchor, firstAnchor)
+            XCTAssertEqual(constraint.constant, -constant)
+            XCTAssertEqual(constraint.multiplier, 1/multiplier)
         } else {
             XCTAssertEqual(constraint.firstAnchor, firstAnchor)
             XCTAssertEqual(constraint.secondAnchor, secondAnchor)
+            XCTAssertEqual(constraint.constant, constant)
+            XCTAssertEqual(constraint.multiplier, multiplier)
         }
-        XCTAssertEqual(constraint.constant, constant)
-        XCTAssertEqual(constraint.multiplier, multiplier)
+        
         XCTAssertEqual(constraint.priority, priority)
         XCTAssertEqual(constraint.isActive, isActive)
     }
@@ -34,15 +37,15 @@ final class DeclarativeConstraintsTests: XCTestCase {
         parent.addSubview(child2)
         
         parent.constrain {
-            Constraint(child1.layout.top == parent.layout.top)
-            Constraint(child1.layout.leading == parent.layout.leading)
-            Constraint(child1.layout.bottom == parent.layout.bottom)
-            Constraint(child1.layout.trailing == parent.layout.trailing)
+            child1.layout.top == parent.layout.top + 10
+            child1.layout.leading == parent.layout.leading
+            child1.layout.bottom == parent.layout.bottom
+            child1.layout.trailing == parent.layout.trailing
             
-            Constraint(child2.layout.width == parent.layout.width)
+            child2.layout.width == parent.layout.width
             
-            Constraint(child1.layout.height == parent.layout.width)
-            Constraint(child1.layout.height == 2*child1.layout.width)
+            child1.layout.height == parent.layout.width
+            child1.layout.aspect == 0.5
         }
         
         let parentConstraints = parent.constraints.sorted { $0.firstAttribute.rawValue < $1.firstAttribute.rawValue }
@@ -51,7 +54,7 @@ final class DeclarativeConstraintsTests: XCTestCase {
         XCTAssertEqual(parentConstraints.count, 6)
         XCTAssertEqual(child1Constraints.count, 1)
         
-        assertEquality(parentConstraints[0], firstAnchor: child1.topAnchor, secondAnchor: parent.topAnchor, constant: 0, multiplier: 1, priority: .required)
+        assertEquality(parentConstraints[0], firstAnchor: child1.topAnchor, secondAnchor: parent.topAnchor, constant: 10, multiplier: 1, priority: .required)
         assertEquality(parentConstraints[1], firstAnchor: child1.bottomAnchor, secondAnchor: parent.bottomAnchor, constant: 0, multiplier: 1, priority: .required)
         assertEquality(parentConstraints[2], firstAnchor: child1.leadingAnchor, secondAnchor: parent.leadingAnchor, constant: 0, multiplier: 1, priority: .required)
         assertEquality(parentConstraints[3], firstAnchor: child1.trailingAnchor, secondAnchor: parent.trailingAnchor, constant: 0, multiplier: 1, priority: .required)
@@ -71,16 +74,12 @@ final class DeclarativeConstraintsTests: XCTestCase {
         parent.constrain {
             Constraint(child.layout.top == parent.layout.top)
             Constraint(child.layout.leading == parent.layout.leading)
-//            Constraint(child.layout.bottom == parent.layout.bottom)
-//            Constraint(child.layout.trailing == parent.layout.trailing)
         }
         let parentConstraints1 = parent.constraints.sorted { $0.firstAttribute.rawValue < $1.firstAttribute.rawValue }
         
         parent.constrain {
             Constraint(child.layout.top == parent.layout.top)
             Constraint(child.layout.leading - 2 == parent.layout.leading + 4)
-//            Constraint(parent.layout.bottom == child.layout.bottom)
-//            Constraint(parent.layout.trailing + 2 == child.layout.trailing - 3)
         }
         
         let parentConstraints2 = parent.constraints.sorted { $0.firstAttribute.rawValue < $1.firstAttribute.rawValue }

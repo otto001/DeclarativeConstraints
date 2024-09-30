@@ -23,6 +23,10 @@ extension Constraint: ConstraintBuilderProtocol {
     public func buildConstraints() -> [Constraint] { [self] }
 }
 
+extension LayoutEquation: ConstraintBuilderProtocol {
+    public func buildConstraints() -> [Constraint] { [Constraint(self, priority: .required)] }
+}
+
 internal struct OptionalConstraintBuilder: ConstraintBuilderProtocol {
     var builder: any ConstraintBuilderProtocol
     
@@ -64,3 +68,4 @@ extension Array: ConstraintBuilderProtocol where Element == ConstraintBuilderPro
         OptionalConstraintBuilder(component)
     }
 }
+
