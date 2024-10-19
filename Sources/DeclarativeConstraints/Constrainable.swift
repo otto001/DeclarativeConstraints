@@ -84,7 +84,7 @@ extension NativeView {
                 if !currentConstraint.isActive {
                     currentConstraint.isActive = true
                 }
-            } else {
+            } else if constraintStorage.storedConstraints[constraintID] == nil {
                 // Set the identifier to identify the constraint as a declarative constraint
                 let newConstraint = self.constrain(constraint, updateTranslatesAutoresizingMaskIntoConstraints: true)
                 newConstraint.identifier = constraintIdentifier

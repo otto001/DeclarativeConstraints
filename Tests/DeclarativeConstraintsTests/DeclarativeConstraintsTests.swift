@@ -95,20 +95,48 @@ final class DeclarativeConstraintsTests: XCTestCase {
         parent.addSubview(child)
         
         var x: Bool = true
-        
-        parent.constrain {
-            if x {
-                Constraint(child.layout.top == parent.layout.top)
+        func updateConstraints() {
+            parent.constrain {
+                if x {
+                    Constraint(child.layout.top == parent.layout.top)
+                }
             }
         }
+        
+        updateConstraints()
+        XCTAssertEqual(parent.constraints.count, 1)
         x = false
-        parent.constrain {
-            if x {
-                Constraint(child.layout.top == parent.layout.top)
+        updateConstraints()
+        XCTAssertEqual(parent.constraints.count, 0)
+        x = true
+        updateConstraints()
+        XCTAssertEqual(parent.constraints.count, 1)
+    }
+    
+    func testDuplicateConstraint() throws {
+        let parent = UIView()
+        let child = UIView()
+        parent.addSubview(child)
+        
+        var x: Bool = true
+        func updateConstraints() {
+            parent.constrain {
+                if x {
+                    Constraint(child.layout.top == parent.layout.top)
+                    Constraint(child.layout.top == parent.layout.top)
+                    Constraint(child.layout.top == parent.layout.top + 4)
+                }
             }
         }
         
+        updateConstraints()
+        XCTAssertEqual(parent.constraints.count, 1)
+        x = false
+        updateConstraints()
         XCTAssertEqual(parent.constraints.count, 0)
+        x = true
+        updateConstraints()
+        XCTAssertEqual(parent.constraints.count, 1)
     }
     
     func testGarbageCollection() throws {
@@ -160,11 +188,10 @@ final class DeclarativeConstraintsTests: XCTestCase {
         }
         
         XCTAssertEqual(parent.constraints.count, 3)
-        
         let constraints = parent.constraints.sorted { $0.firstAttribute.rawValue < $1.firstAttribute.rawValue }
-        assertEquality(constraints[0], firstAnchor: parent.topAnchor, secondAnchor: child.topAnchor, constant: 4, multiplier: 1, priority: .required)
-        assertEquality(constraints[1], firstAnchor: parent.bottomAnchor, secondAnchor: child.bottomAnchor, constant: 3, multiplier: 1, priority: .required)
-        assertEquality(constraints[2], firstAnchor: parent.leadingAnchor, secondAnchor: child.leadingAnchor, constant: 2, multiplier: 1, priority: .required)
+        assertEquality(constraints[0], firstAnchor: child.topAnchor, secondAnchor: parent.topAnchor, constant: 4, multiplier: 1, priority: .required)
+        assertEquality(constraints[1], firstAnchor: child.bottomAnchor, secondAnchor: parent.bottomAnchor, constant: 3, multiplier: 1, priority: .required)
+        assertEquality(constraints[2], firstAnchor: child.leadingAnchor, secondAnchor: parent.leadingAnchor, constant: 2, multiplier: 1, priority: .required)
     }
     
     func testChangeMultiplierAndConstant() throws {
@@ -186,8 +213,8 @@ final class DeclarativeConstraintsTests: XCTestCase {
         XCTAssertEqual(parent.constraints.count, 2)
         
         let constraints = parent.constraints.sorted { $0.firstAttribute.rawValue < $1.firstAttribute.rawValue }
-        assertEquality(constraints[0], firstAnchor: parent.widthAnchor, secondAnchor: child.widthAnchor, constant: 2, multiplier: 1/4, priority: .required)
-        assertEquality(constraints[1], firstAnchor: parent.heightAnchor, secondAnchor: child.heightAnchor, constant: 0, multiplier: 2, priority: .required)
+        assertEquality(constraints[0], firstAnchor: child.widthAnchor, secondAnchor: parent.widthAnchor, constant: 2, multiplier: 1/4, priority: .required)
+        assertEquality(constraints[1], firstAnchor: child.heightAnchor, secondAnchor: parent.heightAnchor, constant: 0, multiplier: 2, priority: .required)
     }
     
     func testBoundsAnchor() throws {
